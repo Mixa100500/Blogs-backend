@@ -1,17 +1,18 @@
 const config = require('./utils/config')
 const express = require('express')
+require('express-async-errors')
 const app = express()
 const cors = require('cors')
 const blogsRouter = require('./conrtollers/blogs')
 const logger = require('./utils/logger')
 const mongoose = require('mongoose')
 
-app.use('/api/blogs', blogsRouter)
-
-logger.info('connected to', config.MONGODB_URL)
-mongoose.connect(config.MONGODB_URL)
+logger.info('connected to', config.MONGODB_URI)
+mongoose.connect(config.MONGODB_URI)
 
 app.use(cors())
 app.use(express.json())
+
+app.use('/api/blogs', blogsRouter)
 
 module.exports = app
