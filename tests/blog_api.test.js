@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../app')
 const Blog = require('../moduls/blog')
+const User = require('../moduls/user')
 const helper = require('./test_helper')
 
 beforeEach(async () => {
@@ -9,7 +10,13 @@ beforeEach(async () => {
   await Blog.insertMany(helper.initialBlogs)
 })
 
+beforeAll(async () => {
+  await User.deleteMany({})
+  await User.insertMany(helper.initialUsers)
+})
+
 const api = supertest(app)
+
 
 describe('when there is initially some blogs saved', () => {
   test('blogs are returned as json', async () => {
@@ -49,6 +56,7 @@ describe('viewing a specific blog', () => {
 
 
 describe('addition of a new blog', () => {
+
   test('succeeds with valid data', async () => {
     const newBlog = {
       title: 'Canonical string reduction',
@@ -56,10 +64,13 @@ describe('addition of a new blog', () => {
       url: 'http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html',
       likes: 12,
     }
+
+    const token = await helper.getToken()
   
     await api
       .post('/api/blogs')
       .send(newBlog)
+      .set('Authorization', 'Bearer ' + token)
       .expect(201)
       .expect('Content-Type', /application\/json/)
     
@@ -79,9 +90,12 @@ describe('addition of a new blog', () => {
       url: 'http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html',
     }
 
+    const token = await helper.getToken()
+
     await api
       .post('/api/blogs')
       .send(newBlog)
+      .set('Authorization', 'Bearer ' + token)
       .expect(201)
 
     const blogsAtEnd = await helper.blogsInDb()
@@ -95,15 +109,36 @@ describe('addition of a new blog', () => {
       author: "Edsger W. Dijkstra",
       likes: 12
     }
+    const token = await helper.getToken()
 
     await api
       .post('/api/blogs')
       .send(newBlog)
+      .set('Authorization', 'Bearer ' + token)
       .expect(400)
     
     const blogsAtEnd = await helper.blogsInDb()
     expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
   })
+
+  test('fails with status code 401 if a token is not provided', async () => {
+    const newBlog = {
+      title: 'Canonical string reduction',
+      author: 'Edsger W. Dijkstra',
+      url: 'http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html',
+      likes: 12,
+    }
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(401)
+
+    const blogsAtEnd = await helper.blogsInDb()
+    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
+  }, 20000)
+
+
 })
 
 describe('deletion of a blog', () => {
